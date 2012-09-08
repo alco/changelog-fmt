@@ -21,6 +21,7 @@ Example of the Changelog format:
 """
 
 import re
+import shutil
 
 def sorted_changes(change_list):
     """change_list is a tuple of the form (category, line)"""
@@ -64,7 +65,7 @@ def organize_sections(infile, count=1, match_release=False, accum=[]):
 
     if count == 0:
         # Base of recursion
-        return []
+        return accum
 
     lines = []
     def get_line():
@@ -104,6 +105,34 @@ def organize_sections(infile, count=1, match_release=False, accum=[]):
     result = accum + lines[start:section_start] + sorted_section + lines[section_end:]
     return organize_sections(infile, count-1, match_release, result)
 
+def run(infile, outfilename, section_count):
+    if not outfilename or outfilename == infile.name:
+        # Modify the input file in-place
+        outfile = infile
+    else:
+        # Copy the input file and then modify the output one
+        shutil.copy(infile.name, outfilename)
+        outfile = open(outfilename, 'r+')
+
+    pos = infile.tell()
+    if section_count == 0:
+        lines = organize_sections(infile, -1, True)
+    else:
+        lines = organize_sections(infile, section_count)
+
+    if lines:
+        outfile.seek(pos)
+        outfile.writelines(lines)
+        status = 0
+    else:
+        print 'No sections found'
+        status = 1
+
+    infile.close()
+    outfile.close()
+
+    return status
+
 
 if __name__ == '__main__':
     import argparse
@@ -125,29 +154,6 @@ if __name__ == '__main__':
     if infile == sys.stdin:
         raise RuntimeError("Stdin not supported")
 
-    if not args.out_file or args.out_file == infile.name:
-        # Modify the input file in-place
-        outfile = infile
-    else:
-        # Copy the input file and then modify the output one
-        shutil.copy(args.in_file.name, args.out_file)
-        outfile = open(args.out_file, 'r+')
-
-    pos = infile.tell()
-    if args.section_count == 0:
-        lines = organize_sections(infile, -1, True)
-    else:
-        lines = organize_sections(infile, args.section_count)
-
-    if lines:
-        outfile.seek(pos)
-        outfile.writelines(lines)
-        status = 0
-    else:
-        print 'No sections found'
-        status = 1
-
-    infile.close()
-    outfile.close()
+    status = run(infile, args.out_file, args.section_count)
 
     exit(status)
