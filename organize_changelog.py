@@ -107,7 +107,11 @@ def organize_sections(infile, count=1, match_release=False, accum=[]):
     sorted_section = map(lambda x: x[1], sorted_changes(section))
 
     result = accum + lines[start:section_start] + sorted_section + lines[section_end:]
-    return organize_sections(infile, count-1, match_release, result)
+    if sorted_section:
+        new_count = count-1
+    else:
+        new_count = count
+    return organize_sections(infile, new_count, match_release, result)
 
 def run(infile, outfilename, section_count):
     if not outfilename or outfilename == infile.name:
