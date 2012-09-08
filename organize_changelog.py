@@ -118,8 +118,10 @@ if __name__ == '__main__':
         raise RuntimeError("Stdin not supported")
 
     if not args.out_file or args.out_file == infile.name:
+        # Modify the input file in-place
         outfile = infile
     else:
+        # Copy the input file and then modify the output one
         shutil.copy(args.in_file.name, args.out_file)
         outfile = open(args.out_file, 'r+')
 
@@ -128,9 +130,12 @@ if __name__ == '__main__':
     if lines:
         outfile.seek(pos)
         outfile.writelines(lines)
+        status = 0
     else:
         print 'No sections found'
+        status = 1
 
     infile.close()
-    if outfile != infile:
-        outfile.close()
+    outfile.close()
+
+    exit(status)
