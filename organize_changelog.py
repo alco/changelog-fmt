@@ -27,7 +27,7 @@ def sorted_changes(change_list):
     return sorted(change_list, key=lambda x: x[0])
 
 def extract_section(lines, startline):
-    """ Enumerates lines until a set of changes matching the pattern is found.
+    """Enumerates lines until a set of changes matching the pattern is found.
 
     Returns a list of tuples of the form (category, line) and the
     indices of the first and last lines comprising the change set.
@@ -59,7 +59,7 @@ def extract_section(lines, startline):
 
     return changes, start, end
 
-def organize_sections(infile, count=1, match_release=False):
+def organize_sections(infile, count=1, match_release=False, accum=[]):
     release_re = re.compile(r'^# v')
 
     if count == 0:
@@ -79,14 +79,14 @@ def organize_sections(infile, count=1, match_release=False):
         line = get_line()
         if not line:
             # Unexpected EOF
-            return []
+            return accum
         if line.strip():
             # Non-blank line
             break
         start += 1
 
     if match_release and release_re.match(line):
-        return lines
+        return accum + lines
 
     # Find out the end of the section
     while True:
@@ -101,7 +101,8 @@ def organize_sections(infile, count=1, match_release=False):
     section, section_start, section_end = extract_section(lines, start)
     sorted_section = map(lambda x: x[1], sorted_changes(section))
 
-    return lines[start:section_start] + sorted_section + lines[section_end:] + organize_sections(infile, count-1, match_release)
+    result = accum + lines[start:section_start] + sorted_section + lines[section_end:]
+    return organize_sections(infile, count-1, match_release, result)
 
 
 if __name__ == '__main__':
