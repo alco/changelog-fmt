@@ -57,6 +57,10 @@ def extract_section(lines, startline):
         elif not match:
             end = i
             break
+    # Fix for the case when the loop has finished before assignment
+    # to end
+    if start > startline:
+        end = max(end, start + 1)
 
     return changes, start, end
 
