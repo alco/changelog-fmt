@@ -1,7 +1,8 @@
 Changelog formatter
 ===================
 
-Organizes your Changelog file by ordering changes by category.
+Organizes your Changelog file by ordering the change sets by
+category.
 
 Requires Python 2.7.
 
@@ -22,3 +23,7 @@ Type
     ./organize_changelog.py -h
 
 to see detailed description of supported options.
+
+Test with
+
+    ./test.sh
