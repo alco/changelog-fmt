@@ -97,10 +97,9 @@ def organize_sections(infile, count=1):
             break
 
     section, section_start, section_end = extract_section(lines, start)
-    if section:
-        sorted_section = map(lambda x: x[1], sorted_changes(section))
-        return lines[start:section_start] + sorted_section + lines[section_end:] + organize_sections(infile, count-1)
-    return lines
+    sorted_section = map(lambda x: x[1], sorted_changes(section))
+
+    return lines[start:section_start] + sorted_section + lines[section_end:] + organize_sections(infile, count-1)
 
 
 if __name__ == '__main__':
@@ -111,7 +110,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Organize changes in a Changelog file by category")
     parser.add_argument("in_file", metavar="file", type=argparse.FileType('r+'), help="A Changelog file.")
     parser.add_argument("-o", "--out_file", help="Optional output file. By default, the input file is modified in-place.")
-    parser.add_argument("-n", metavar="section_count", help="Number of sections to organize. 0 means organize all sections until latest stable release. A negative value means organize the whole file. Default: 0.")
+    parser.add_argument("-n", "--section_count", type=int, default=1, help="Number of sections to organize. 0 means organize all sections until latest stable release. A negative value means organize the whole file. Default: 0.")
     args = parser.parse_args()
 
     infile = args.in_file
@@ -122,10 +121,10 @@ if __name__ == '__main__':
         outfile = infile
     else:
         shutil.copy(args.in_file.name, args.out_file)
-        outfile = open(args.out_file, 'w+')
-    pos = infile.tell()
+        outfile = open(args.out_file, 'r+')
 
-    lines = organize_sections(infile, -1)
+    pos = infile.tell()
+    lines = organize_sections(infile, args.section_count)
     if lines:
         outfile.seek(pos)
         outfile.writelines(lines)
