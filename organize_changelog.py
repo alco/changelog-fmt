@@ -109,14 +109,14 @@ if __name__ == '__main__':
     import sys
 
     parser = argparse.ArgumentParser(description="Organize changes in a Changelog file by category")
-    parser.add_argument("in_file", metavar="file", nargs="?", type=argparse.FileType('r+'), default=sys.stdin, help="A Changelog file. Use - for stdin")
-    parser.add_argument("-o", "--out_file", help="Optional output file. By default, the input file is modified in place")
+    parser.add_argument("in_file", metavar="file", type=argparse.FileType('r+'), help="A Changelog file.")
+    parser.add_argument("-o", "--out_file", help="Optional output file. By default, the input file is modified in-place.")
     parser.add_argument("-n", metavar="section_count", help="Number of sections to organize. 0 means organize all sections until latest stable release. A negative value means organize the whole file. Default: 0.")
     args = parser.parse_args()
 
     infile = args.in_file
-    if infile == sys.stdin and not args.out_file:
-        raise RuntimeError("Must have output file when reading from stdin")
+    if infile == sys.stdin:
+        raise RuntimeError("Stdin not supported")
 
     if not args.out_file or args.out_file == infile.name:
         outfile = infile
