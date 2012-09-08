@@ -32,13 +32,56 @@ def extract_section(lines, startline):
 
     return current_section, start, end
 
-def organize_sections(infile, outfile):
+def organize_sections(infile, count=1):
     """Blank line separates sections"""
-    lines = infile.
+    def get_line():
+        return infile.readline()
+
+    lines = []
+    start = 0
+    # Skip initial blank lines
+    while True:
+        line = get_line()
+        if not line:
+            # Unexpected EOF
+            return
+        lines.append(line)
+        if line.strip():
+            break
+        start += 1
+
+    # Find out the end of the section
+    while True:
+        line = get_line()
+        if not line:
+            # EOF
+            break
+        lines.append(line)
+        if not line.strip():
+            break
+
+    section, section_start, section_end = extract_section(lines, start)
+    sorted_section = map(lambda x: x[1], sorted_changes(section))
+
+    return lines[start:section_start] + sorted_section + lines[section_end:]
 
 if __name__ == '__main__':
-    with open('changelog') as infile:
-        input_lines = infile.readlines()
+    import shutil
+    import sys
+
+    infilename = 'changelog'
+    outfilename = 'result'
+
+    # Copy the input file to another location
+    shutil.copy(infilename, outfilename)
+
+    infile = open(outfilename, 'r+')
+    pos = infile.tell()
+    lines = organize_sections(infile)
+    infile.seek(pos)
+    infile.writelines(lines)
+    infile.close()
+    exit(0)
 
     output_lines = []
 
