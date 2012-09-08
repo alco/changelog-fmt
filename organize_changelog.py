@@ -59,8 +59,7 @@ def extract_section(lines, startline):
 
     return changes, start, end
 
-def organize_sections(infile, count=1):
-    """Blank line separates sections"""
+def organize_sections(infile, count=1, match_release=False):
     release_re = re.compile(r'^# v')
 
     if count == 0:
@@ -86,6 +85,9 @@ def organize_sections(infile, count=1):
             break
         start += 1
 
+    if match_release and release_re.match(line):
+        return lines
+
     # Find out the end of the section
     while True:
         line = get_line()
@@ -99,7 +101,7 @@ def organize_sections(infile, count=1):
     section, section_start, section_end = extract_section(lines, start)
     sorted_section = map(lambda x: x[1], sorted_changes(section))
 
-    return lines[start:section_start] + sorted_section + lines[section_end:] + organize_sections(infile, count-1)
+    return lines[start:section_start] + sorted_section + lines[section_end:] + organize_sections(infile, count-1, match_release)
 
 
 if __name__ == '__main__':
@@ -110,7 +112,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Organize changes in a Changelog file by category")
     parser.add_argument("in_file", metavar="file", type=argparse.FileType('r+'), help="A Changelog file.")
     parser.add_argument("-o", "--out_file", help="Optional output file. By default, the input file is modified in-place.")
-    parser.add_argument("-n", "--section_count", type=int, default=1, help="Number of sections to organize. 0 means organize all sections until latest stable release. A negative value means organize the whole file. Default: 0.")
+    parser.add_argument("-n", "--section_count", type=int, default=0, help="Number of sections to organize. 0 means organize all sections until latest stable release. A negative value means organize the whole file. Default: 0.")
     args = parser.parse_args()
 
     infile = args.in_file
@@ -126,7 +128,11 @@ if __name__ == '__main__':
         outfile = open(args.out_file, 'r+')
 
     pos = infile.tell()
-    lines = organize_sections(infile, args.section_count)
+    if args.section_count == 0:
+        lines = organize_sections(infile, -1, True)
+    else:
+        lines = organize_sections(infile, args.section_count)
+
     if lines:
         outfile.seek(pos)
         outfile.writelines(lines)
