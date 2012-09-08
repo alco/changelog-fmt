@@ -110,10 +110,15 @@ if __name__ == '__main__':
     import shutil
     import sys
 
-    parser = argparse.ArgumentParser(description="Organize changes in a Changelog file by category")
-    parser.add_argument("in_file", metavar="file", type=argparse.FileType('r+'), help="A Changelog file.")
-    parser.add_argument("-o", "--out_file", help="Optional output file. By default, the input file is modified in-place.")
-    parser.add_argument("-n", "--section_count", type=int, default=0, help="Number of sections to organize. 0 means organize all sections until latest stable release. A negative value means organize the whole file. Default: 0.")
+    parser = argparse.ArgumentParser(
+            description="Organize changes in a Changelog file by category")
+    parser.add_argument("in_file", metavar="file",
+            type=argparse.FileType('r+'), help="A Changelog file.")
+    parser.add_argument("-o", "--out_file",
+            help="Optional output file. By default, the input file is modified in-place.")
+    parser.add_argument("-n", "--section_count", type=int, default=0,
+            help="Number of sections to organize. 0 means organize all sections until latest stable release. " +
+                 "A negative value means organize the whole file. Default: 0.")
     args = parser.parse_args()
 
     infile = args.in_file
