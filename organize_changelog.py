@@ -1,3 +1,25 @@
+#!/usr/bin/env python
+
+"""
+Organize your Changelog file by ordering changes by category.
+
+A category is enclosed between brackets [ and ].
+
+Example of the Changelog format:
+
+    * header
+      * [Cat1] Description
+      * [Cat2] Description
+      ...
+      * [CatN] Description
+
+
+    # new release
+
+    ...
+
+"""
+
 import re
 
 def sorted_changes(change_list):
@@ -5,48 +27,62 @@ def sorted_changes(change_list):
     return sorted(change_list, key=lambda x: x[0])
 
 def extract_section(lines, startline):
-    PARSE_STATE_SEARCHING = 1
-    PARSE_STATE_COLLECTING = 2
+    """ Enumerates lines until a set of changes matching the pattern is found.
 
-    state = PARSE_STATE_SEARCHING
-    sect_re = re.compile(r'^\s+\* \[(\w+)\]')
+    Returns a list of tuples of the form (category, line) and the
+    indices of the first and last lines comprising the change set.
 
-    current_section = []
-    start = 0
-    end = -1
+    """
+    sect_re = re.compile(r'^\s+\* \[([^\]]+)\]')
+    changes = []
+
+    def get_match(line):
+        m = sect_re.match(line)
+        if m:
+            # m.group(1) is a category name
+            changes.append((m.group(1), line))
+            return True
+
+    searching = True
+
+    start, end = startline, startline
     for i in range(startline, len(lines)):
         line = lines[i]
-        if state == PARSE_STATE_SEARCHING:
-            match = sect_re.match(line)
+        match = get_match(line)
+        if searching:
             if match:
                 start = i
-                current_section.append((match.group(1), line))
-                state = PARSE_STATE_COLLECTING
-        elif state == PARSE_STATE_COLLECTING:
-            match = sect_re.match(line)
-            if match:
-                current_section.append((match.group(1), line))
-            else:
-                end = i
-                break
+                searching = False
+        elif not match:
+            end = i
+            break
 
-    return current_section, start, end
+    return changes, start, end
 
 def organize_sections(infile, count=1):
     """Blank line separates sections"""
-    def get_line():
-        return infile.readline()
+    release_re = re.compile(r'^# v')
+
+    if count == 0:
+        # Base of recursion
+        return []
 
     lines = []
+    def get_line():
+        line = infile.readline()
+        if line:
+            lines.append(line)
+            return line
+
     start = 0
     # Skip initial blank lines
     while True:
         line = get_line()
         if not line:
             # Unexpected EOF
-            return
-        lines.append(line)
+            return []
         if line.strip():
+            # Non-blank line
             break
         start += 1
 
@@ -56,48 +92,46 @@ def organize_sections(infile, count=1):
         if not line:
             # EOF
             break
-        lines.append(line)
         if not line.strip():
+            # blank line
             break
 
     section, section_start, section_end = extract_section(lines, start)
-    sorted_section = map(lambda x: x[1], sorted_changes(section))
+    if section:
+        sorted_section = map(lambda x: x[1], sorted_changes(section))
+        return lines[start:section_start] + sorted_section + lines[section_end:] + organize_sections(infile, count-1)
+    return lines
 
-    return lines[start:section_start] + sorted_section + lines[section_end:]
 
 if __name__ == '__main__':
+    import argparse
     import shutil
     import sys
 
-    infilename = 'changelog'
-    outfilename = 'result'
+    parser = argparse.ArgumentParser(description="Organize changes in a Changelog file by category")
+    parser.add_argument("in_file", metavar="file", nargs="?", type=argparse.FileType('r+'), default=sys.stdin, help="A Changelog file. Use - for stdin")
+    parser.add_argument("-o", "--out_file", help="Optional output file. By default, the input file is modified in place")
+    parser.add_argument("-n", metavar="section_count", help="Number of sections to organize. 0 means organize all sections until latest stable release. A negative value means organize the whole file. Default: 0.")
+    args = parser.parse_args()
 
-    # Copy the input file to another location
-    shutil.copy(infilename, outfilename)
+    infile = args.in_file
+    if infile == sys.stdin and not args.out_file:
+        raise RuntimeError("Must have output file when reading from stdin")
 
-    infile = open(outfilename, 'r+')
+    if not args.out_file or args.out_file == infile.name:
+        outfile = infile
+    else:
+        shutil.copy(args.in_file.name, args.out_file)
+        outfile = open(args.out_file, 'w+')
     pos = infile.tell()
-    lines = organize_sections(infile)
-    infile.seek(pos)
-    infile.writelines(lines)
+
+    lines = organize_sections(infile, -1)
+    if lines:
+        outfile.seek(pos)
+        outfile.writelines(lines)
+    else:
+        print 'No sections found'
+
     infile.close()
-    exit(0)
-
-    output_lines = []
-
-    index = 0
-    while True:
-        section, start, end = extract_section(input_lines, index)
-        if end == -1:
-            output_lines.extend(input_lines[index:])
-            break
-        print section
-        print start
-        print end
-        output_lines.extend(input_lines[index:start])
-        sorted_section = sorted_changes(section)
-        output_lines.extend(map(lambda x: x[1], sorted_section))
-        index = end
-
-    with open('result', 'w') as outfile:
-        outfile.writelines(output_lines)
+    if outfile != infile:
+        outfile.close()
